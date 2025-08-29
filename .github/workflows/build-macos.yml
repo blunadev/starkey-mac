@@ -66,7 +66,7 @@ jobs:
           mv dist/main-gui $APP_NAME.app/Contents/MacOS/main-gui
           chmod +x $APP_NAME.app/Contents/MacOS/main-gui
           cp assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
-          cat <<EOF > $APP_NAME.app/Contents/Info.plist
+          cat <<EOF >/tmp/Info.plist
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -91,6 +91,7 @@ jobs:
 </dict>
 </plist>
 EOF
+          mv /tmp/Info.plist $APP_NAME.app/Contents/Info.plist
 
       # 7. Upload .app bundle as artifact
       - name: Upload .app artifact
