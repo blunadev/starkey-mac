@@ -25,8 +25,8 @@ jobs:
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
       - name: Build with Nuitka
-        working-directory: .github/workflows
         run: |
+          cd .github/workflows
           python -m nuitka --onefile --standalone \
             --include-module=verification \
             --include-module=scfarm \
@@ -52,8 +52,8 @@ jobs:
             main-gui.py
 
       - name: Wrap in .app bundle
-        working-directory: .github/workflows/dist
         run: |
+          cd .github/workflows/dist
           APP_NAME="StarKeyApp"
           mkdir -p "$APP_NAME.app/Contents/{MacOS,Resources}"
           mv main-gui.bin "$APP_NAME.app/Contents/MacOS/main-gui"
