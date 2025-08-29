@@ -53,7 +53,7 @@ jobs:
             --enable-plugin=tk-inter \
             main-gui.py
 
-      # 5. Automatically create .app bundle
+            # 5. Automatically create .app bundle
       - name: Wrap in .app bundle
         run: |
           APP_NAME="MyApp"
@@ -61,9 +61,9 @@ jobs:
           mv main-gui.bin $APP_NAME.app/Contents/MacOS/main-gui
           chmod +x $APP_NAME.app/Contents/MacOS/main-gui
           cp assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
-          cat << EOF > $APP_NAME.app/Contents/Info.plist
+          cat <<EOF > $APP_NAME.app/Contents/Info.plist
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" 
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
