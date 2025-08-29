@@ -1,7 +1,7 @@
 name: Build macOS Executable
 
 on:
-  workflow_dispatch:       # allows manual trigger
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -25,13 +25,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nuitka==1.8.6           # pin to stable version
+          pip install nuitka==1.8.6
           pip install pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
       # Step 4: Build the executable with Nuitka
       - name: Build with Nuitka
         run: |
-          python -m nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output \
+          python -m nuitka --onefile --standalone --no-pyi-file --remove-output \
             --include-module=verification \
             --include-module=scfarm \
             --include-module=room \
@@ -55,9 +55,14 @@ jobs:
             --macos-icon-from-icns=assets/icon.icns \
             main-gui.py
 
-      # Step 5: Upload the executable as an artifact
+      # Step 5: Make the binary executable
+      - name: Make .bin executable
+        run: |
+          chmod +x main-gui.bin
+
+      # Step 6: Upload the executable as an artifact
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: main-gui-macos
-          path: main-gui.bin   # Nuitka builds as .bin on macOS
+          path: main-gui.bin
