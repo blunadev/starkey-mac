@@ -11,23 +11,19 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python 3.12
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
-      # 4. Build the executable
       - name: Build with Nuitka
         run: |
           mkdir -p dist
@@ -52,42 +48,39 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
-      # 5. Wrap in .app bundle
       - name: Wrap in .app bundle
         run: |
           APP_NAME="MyApp"
-          BIN_PATH="dist/main-gui"  # Nuitka outputs executable with the same name as script without .py
-          mkdir -p $APP_NAME.app/Contents/{MacOS,Resources}
-          cp "$BIN_PATH" $APP_NAME.app/Contents/MacOS/main-gui
-          chmod +x $APP_NAME.app/Contents/MacOS/main-gui
-          cp assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
-          cat <<EOF > $APP_NAME.app/Contents/Info.plist
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.yourname.$APP_NAME</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleExecutable</key>
-    <string>main-gui</string>
-    <key>CFBundleIconFile</key>
-    <string>icon.icns</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.12</string>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.utilities</string>
-</dict>
-</plist>
-EOF
+          BIN_PATH="dist/main-gui"
+          mkdir -p "$APP_NAME.app/Contents/MacOS" "$APP_NAME.app/Contents/Resources"
+          cp "$BIN_PATH" "$APP_NAME.app/Contents/MacOS/main-gui"
+          chmod +x "$APP_NAME.app/Contents/MacOS/main-gui"
+          cp assets/icon.icns "$APP_NAME.app/Contents/Resources/icon.icns"
 
-      # 6. Upload .app bundle as artifact
+          # Write Info.plist using echo (safe for GitHub Actions YAML)
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > "$APP_NAME.app/Contents/Info.plist"
+          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '<plist version="1.0">' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '<dict>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleName</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo "    <string>$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleDisplayName</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo "    <string>$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleIdentifier</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo "    <string>com.yourname.$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleVersion</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <string>1.0</string>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleExecutable</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <string>main-gui</string>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>CFBundleIconFile</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <string>icon.icns</string>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>LSMinimumSystemVersion</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <string>10.12</string>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <key>LSApplicationCategoryType</key>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '    <string>public.app-category.utilities</string>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '</dict>' >> "$APP_NAME.app/Contents/Info.plist"
+          echo '</plist>' >> "$APP_NAME.app/Contents/Info.plist"
+
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
