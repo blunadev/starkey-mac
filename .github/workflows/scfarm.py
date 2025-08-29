@@ -11,10 +11,23 @@ from msp import invoke_method, ticket_header
 import pytz  # For timezone handling
 
 
+def get_app_data_dir():
+    """Cross-platform directory for storing app data."""
+    if os.name == "nt":
+        base_dir = os.getenv("APPDATA", os.path.expanduser("~"))
+    elif sys.platform == "darwin":
+        base_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:  # Linux / others
+        base_dir = os.path.join(os.path.expanduser("~"), ".local", "share")
+    app_dir = os.path.join(base_dir, "StarKey")
+    os.makedirs(app_dir, exist_ok=True)
+    return app_dir
+
+
 class SCFarm:
     def __init__(self, session_info, log_callback=None):
         """
-        session_info: dict with ticket, actor_id, server, session_id
+        session_info: dict with ticket, actor_id, username, server, session_id
         log_callback: function to receive log messages (str)
         """
         self.session_info = session_info
@@ -25,8 +38,12 @@ class SCFarm:
 
         # Load today's petted bonsters
         if os.path.exists(self.progress_file):
-            with open(self.progress_file, "r") as f:
-                self.petted = set(int(line.strip()) for line in f if line.strip().isdigit())
+            try:
+                with open(self.progress_file, "r") as f:
+                    self.petted = set(int(line.strip()) for line in f if line.strip().isdigit())
+            except Exception as e:
+                self.log(f"[WARN] Failed to read progress file: {e}")
+                self.petted = set()
 
     # ----------------- Utility -----------------
     def log(self, message):
@@ -36,22 +53,20 @@ class SCFarm:
         """
         Generate a progress file name based on the username, and date.
         """
-        appdata_dir = os.getenv("APPDATA") or os.path.expanduser("~")
+        appdata_dir = get_app_data_dir()
 
-        # Retrieve username from session_info, fallback to actor_id if not available
-        username = self.session_info.get("username", "unknown_user")  
-        if username == "unknown_user":
-            username = str(self.session_info.get("actor_id", "unknown_user"))  # Fallback to actor_id if no username
-        
-        # Get the current UTC time and timezone
-        now = datetime.now(pytz.timezone("UTC"))  
-        formatted_date = now.strftime("%Y-%m-%d")  # Use only the date (YYYY-MM-DD)
-        
-        # Build filename using username and date
+        # Retrieve username from session_info, fallback to actor_id
+        username = self.session_info.get("username") or str(self.session_info.get("actor_id", "unknown_user"))
+
+        # Current UTC date
+        now = datetime.now(pytz.timezone("UTC"))
+        formatted_date = now.strftime("%Y-%m-%d")
+
+        # Build filename
         filename = f"{username}_bonsterids_{formatted_date}.txt"
         progress_file_path = os.path.join(appdata_dir, filename)
 
-        # Remove old progress files (but not the current day's file)
+        # Remove old progress files (not today's)
         for old_file in glob.glob(os.path.join(appdata_dir, f"{username}_bonsterids_*.txt")):
             if old_file != progress_file_path:
                 try:
@@ -101,8 +116,11 @@ class SCFarm:
 
         if code == 200:
             self.log(f"{Fore.GREEN}✅ Pet sent to Bonster {actorBonsterRelId}{Style.RESET_ALL}")
-            with open(self.progress_file, "a") as f:
-                f.write(f"{actorBonsterRelId}\n")
+            try:
+                with open(self.progress_file, "a") as f:
+                    f.write(f"{actorBonsterRelId}\n")
+            except Exception as e:
+                self.log(f"[WARN] Failed to write to progress file: {e}")
             self.petted.add(actorBonsterRelId)
             return True
         else:
