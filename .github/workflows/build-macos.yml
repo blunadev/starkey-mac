@@ -25,13 +25,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nuitka==1.8.6           # pin to latest stable
+          pip install nuitka==1.8.6           # pin to stable version
           pip install pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
       # Step 4: Build the executable with Nuitka
       - name: Build with Nuitka
         run: |
-          nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output \
+          python -m nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output \
             --include-module=verification \
             --include-module=scfarm \
             --include-module=room \
@@ -52,16 +52,12 @@ jobs:
             --include-module=tkinter.scrolledtext \
             --include-module=tkinter.messagebox \
             --enable-plugin=tk-inter \
-            --windows-console-mode=disable \
+            --macos-icon-from-icns=assets/icon.icns \
             main-gui.py
-
-          # Rename and set executable permission
-          mv main-gui.bin main-gui
-          chmod +x main-gui
 
       # Step 5: Upload the executable as an artifact
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: main-gui-macos
-          path: main-gui
+          path: main-gui.bin   # Nuitka builds as .bin on macOS
