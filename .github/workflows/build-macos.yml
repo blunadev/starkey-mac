@@ -30,6 +30,9 @@ jobs:
           cd .github/workflows
           mkdir -p dist
           python -m nuitka --onefile --standalone \
+            --no-pyi-file \
+            --no-debug-immortal-assumptions \
+            --remove-output \
             --include-module=verification \
             --include-module=scfarm \
             --include-module=room \
@@ -41,6 +44,7 @@ jobs:
             --include-module=autograph \
             --include-module=ascii \
             --include-module=animation \
+            --include-module=requests \
             --include-module=curl_cffi.requests \
             --include-module=pyamf \
             --include-module=pyamf.amf0 \
@@ -53,7 +57,7 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
-      - name: Wrap built binary into .app bundle (no heredoc)
+      - name: Wrap built binary into .app bundle
         run: |
           set -e
           cd .github/workflows
@@ -62,14 +66,13 @@ jobs:
           BUNDLE_DIR="$APP_NAME.app/Contents"
           mkdir -p "$BUNDLE_DIR/MacOS" "$BUNDLE_DIR/Resources"
 
-          # Detect Nuitka onefile output (main-gui or main-gui.bin or similar)
+          # Detect Nuitka onefile output
           BIN_CANDIDATE=""
           if [ -f "dist/main-gui.bin" ]; then
             BIN_CANDIDATE="dist/main-gui.bin"
           elif [ -f "dist/main-gui" ]; then
             BIN_CANDIDATE="dist/main-gui"
           else
-            # fallback: pick first file in dist that looks like a binary
             BIN_CANDIDATE=$(ls -1 dist | grep -i "main" | head -n 1 || true)
             if [ -n "$BIN_CANDIDATE" ]; then
               BIN_CANDIDATE="dist/$BIN_CANDIDATE"
@@ -77,7 +80,7 @@ jobs:
           fi
 
           if [ -z "$BIN_CANDIDATE" ] || [ ! -f "$BIN_CANDIDATE" ]; then
-            echo "ERROR: Could not find Nuitka output in dist/ (checked main-gui.bin and main-gui and others)."
+            echo "ERROR: Could not find Nuitka output in dist/"
             ls -la dist || true
             exit 1
           fi
@@ -93,28 +96,28 @@ jobs:
             echo "Warning: assets/icon.icns not found; bundle will have no icon."
           fi
 
-          # Create Info.plist by echoing lines (avoids heredoc/YAML issues)
+          # Create Info.plist
           PLIST_PATH="$BUNDLE_DIR/Info.plist"
           echo '<?xml version="1.0" encoding="UTF-8"?>' > "$PLIST_PATH"
           echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$PLIST_PATH"
           echo '<plist version="1.0">' >> "$PLIST_PATH"
           echo '<dict>' >> "$PLIST_PATH"
-          echo '  <key>CFBundleName</key>' >> "$PLIST_PATH"
+          echo "  <key>CFBundleName</key>" >> "$PLIST_PATH"
           echo "  <string>$APP_NAME</string>" >> "$PLIST_PATH"
-          echo '  <key>CFBundleDisplayName</key>' >> "$PLIST_PATH"
+          echo "  <key>CFBundleDisplayName</key>" >> "$PLIST_PATH"
           echo "  <string>$APP_NAME</string>" >> "$PLIST_PATH"
-          echo '  <key>CFBundleIdentifier</key>' >> "$PLIST_PATH"
+          echo "  <key>CFBundleIdentifier</key>" >> "$PLIST_PATH"
           echo "  <string>com.yourname.$APP_NAME</string>" >> "$PLIST_PATH"
-          echo '  <key>CFBundleVersion</key>' >> "$PLIST_PATH"
-          echo '  <string>1.0</string>' >> "$PLIST_PATH"
-          echo '  <key>CFBundleExecutable</key>' >> "$PLIST_PATH"
-          echo '  <string>main-gui</string>' >> "$PLIST_PATH"
-          echo '  <key>CFBundleIconFile</key>' >> "$PLIST_PATH"
-          echo '  <string>icon.icns</string>' >> "$PLIST_PATH"
-          echo '  <key>LSMinimumSystemVersion</key>' >> "$PLIST_PATH"
-          echo '  <string>10.12</string>' >> "$PLIST_PATH"
-          echo '  <key>LSApplicationCategoryType</key>' >> "$PLIST_PATH"
-          echo '  <string>public.app-category.utilities</string>' >> "$PLIST_PATH"
+          echo "  <key>CFBundleVersion</key>" >> "$PLIST_PATH"
+          echo "  <string>1.0</string>" >> "$PLIST_PATH"
+          echo "  <key>CFBundleExecutable</key>" >> "$PLIST_PATH"
+          echo "  <string>main-gui</string>" >> "$PLIST_PATH"
+          echo "  <key>CFBundleIconFile</key>" >> "$PLIST_PATH"
+          echo "  <string>icon.icns</string>" >> "$PLIST_PATH"
+          echo "  <key>LSMinimumSystemVersion</key>" >> "$PLIST_PATH"
+          echo "  <string>10.12</string>" >> "$PLIST_PATH"
+          echo "  <key>LSApplicationCategoryType</key>" >> "$PLIST_PATH"
+          echo "  <string>public.app-category.utilities</string>" >> "$PLIST_PATH"
           echo '</dict>' >> "$PLIST_PATH"
           echo '</plist>' >> "$PLIST_PATH"
 
