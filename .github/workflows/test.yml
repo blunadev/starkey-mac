@@ -1,0 +1,27 @@
+name: Run macOS Executable
+
+on:
+  workflow_dispatch: # manual trigger
+  push:
+    branches:
+      - main
+
+jobs:
+  run-executable:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Make the executable runnable
+      - name: Set executable permission
+        run: |
+          chmod +x Contents/MacOS/main-gui
+
+      # 3. Run the executable and show terminal output
+      - name: Run main-gui
+        run: |
+          echo "=== Running main-gui ==="
+          Contents/MacOS/main-gui
