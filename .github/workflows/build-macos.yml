@@ -11,27 +11,29 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      # 2. Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
+          pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0 certifi
 
+      # 4. Build with Nuitka
       - name: Build with Nuitka (sources in .github/workflows)
         run: |
           set -e
           cd .github/workflows
           mkdir -p dist
           python -m nuitka --onefile --standalone \
-            --no-pyi-file \
-            --remove-output \
             --include-module=verification \
             --include-module=scfarm \
             --include-module=room \
@@ -44,6 +46,7 @@ jobs:
             --include-module=ascii \
             --include-module=animation \
             --include-module=requests \
+            --include-module=certifi \
             --include-module=curl_cffi.requests \
             --include-module=pyamf \
             --include-module=pyamf.amf0 \
@@ -56,6 +59,7 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
+      # 5. Wrap built binary into .app bundle
       - name: Wrap built binary into .app bundle
         run: |
           set -e
@@ -79,7 +83,7 @@ jobs:
           fi
 
           if [ -z "$BIN_CANDIDATE" ] || [ ! -f "$BIN_CANDIDATE" ]; then
-            echo "ERROR: Could not find Nuitka output in dist/ (checked main-gui.bin and main-gui and others)."
+            echo "ERROR: Could not find Nuitka output in dist/."
             ls -la dist || true
             exit 1
           fi
@@ -120,6 +124,7 @@ jobs:
           echo '</dict>' >> "$PLIST_PATH"
           echo '</plist>' >> "$PLIST_PATH"
 
+      # 6. Upload .app artifact
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
