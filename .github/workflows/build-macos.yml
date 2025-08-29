@@ -11,29 +11,21 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python 3.11 (Nuitka 1.8.6 does not support 3.12)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
-      # 4. Change directory to where Python files are
-      - name: Change directory to build folder
-        run: |
-          cd .github/workflows
-
-      # 5. Build the executable with Nuitka
       - name: Build with Nuitka
+        working-directory: .github/workflows
         run: |
           python -m nuitka --onefile --standalone \
             --include-module=verification \
@@ -59,27 +51,26 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
-      # 6. Wrap the built executable into .app bundle
       - name: Wrap in .app bundle
+        working-directory: .github/workflows/dist
         run: |
-          cd .github/workflows/dist
           APP_NAME="StarKeyApp"
-          mkdir -p $APP_NAME.app/Contents/{MacOS,Resources}
-          mv main-gui.bin $APP_NAME.app/Contents/MacOS/main-gui
-          chmod +x $APP_NAME.app/Contents/MacOS/main-gui
-          cp ../assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
-          cat <<EOF > $APP_NAME.app/Contents/Info.plist
+          mkdir -p "$APP_NAME.app/Contents/{MacOS,Resources}"
+          mv main-gui.bin "$APP_NAME.app/Contents/MacOS/main-gui"
+          chmod +x "$APP_NAME.app/Contents/MacOS/main-gui"
+          cp ../assets/icon.icns "$APP_NAME.app/Contents/Resources/icon.icns"
+          cat > "$APP_NAME.app/Contents/Info.plist" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>$APP_NAME</string>
+    <string>StarKeyApp</string>
     <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
+    <string>StarKeyApp</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourname.$APP_NAME</string>
+    <string>com.yourname.StarKeyApp</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleExecutable</key>
@@ -94,9 +85,8 @@ jobs:
 </plist>
 EOF
 
-      # 7. Upload .app as artifact
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: StarKeyApp-macos
-          path: .github/workflows/dist/$APP_NAME.app
+          path: .github/workflows/dist/StarKeyApp.app
