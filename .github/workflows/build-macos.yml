@@ -1,17 +1,17 @@
-name: Build macOS Executable
+name: Build Executable
 
 on:
-  workflow_dispatch:  # allows manual trigger
-  push:
+  workflow_dispatch: # allows manual trigger
+  push:              # or trigger on pushes
     branches:
-      - main   # change if you use a different default branch
+      - main
 
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  build:
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -21,43 +21,37 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install nuitka pillow requests py3amf
 
       - name: Build with Nuitka
         run: |
-          nuitka \
-            --onefile \
-            --standalone \
-            --no-pyi-file \
-            --no-debug-immortal-assumptions \
-            --remove-output \
-            --include-module=verification \
-            --include-module=scfarm \
-            --include-module=room \
-            --include-module=profile_picture \
-            --include-module=msp \
-            --include-module=login_helper \
-            --include-module=idretriever \
-            --include-module=draftdesign \
-            --include-module=autograph \
-            --include-module=ascii \
-            --include-module=animation \
-            --include-module=requests \
-            --include-package=PIL \
-            --include-module=tkinter \
-            --include-module=tkinter.scrolledtext \
-            --include-module=tkinter.messagebox \
-            --include-module=pyamf \
-            --include-module=pyamf.amf0 \
-            --include-module=pyamf.amf3 \
-            --enable-plugin=tk-inter \
+          nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output ^
+            --include-module=verification ^
+            --include-module=scfarm ^
+            --include-module=room ^
+            --include-module=profile_picture ^
+            --include-module=msp ^
+            --include-module=login_helper ^
+            --include-module=idretriever ^
+            --include-module=draftdesign ^
+            --include-module=autograph ^
+            --include-module=ascii ^
+            --include-module=animation ^
+            --include-module=requests ^
+            --include-package=PIL ^
+            --include-module=tkinter ^
+            --include-module=tkinter.scrolledtext ^
+            --include-module=tkinter.messagebox ^
+            --include-module=pyamf ^
+            --include-module=pyamf.amf0 ^
+            --include-module=pyamf.amf3 ^
+            --enable-plugin=tk-inter ^
+            --windows-console-mode=disable ^
             main-gui.py
 
-      - name: Upload artifact
+      - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-build
-          path: |
-            main-gui.bin
-            main-gui.dist/
+          name: main-gui-exe
+          path: main-gui.exe
