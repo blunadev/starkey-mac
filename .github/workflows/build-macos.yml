@@ -55,9 +55,13 @@ jobs:
             --windows-console-mode=disable \
             main-gui.py
 
+          # Rename and set executable permission
+          mv main-gui.bin main-gui
+          chmod +x main-gui
+
       # Step 5: Upload the executable as an artifact
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: main-gui-macos
-          path: main-gui.bin   # Nuitka builds as .bin on macOS
+          path: main-gui
