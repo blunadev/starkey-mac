@@ -26,29 +26,33 @@ jobs:
 
       - name: Build with Nuitka
         run: |
-          nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output ^
-            --include-module=verification ^
-            --include-module=scfarm ^
-            --include-module=room ^
-            --include-module=profile_picture ^
-            --include-module=msp ^
-            --include-module=login_helper ^
-            --include-module=idretriever ^
-            --include-module=draftdesign ^
-            --include-module=autograph ^
-            --include-module=ascii ^
-            --include-module=animation ^
-            --include-module=requests ^
-            --include-package=PIL ^
-            --include-module=tkinter ^
-            --include-module=tkinter.scrolledtext ^
-            --include-module=tkinter.messagebox ^
-            --include-module=pyamf ^
-            --include-module=pyamf.amf0 ^
-            --include-module=pyamf.amf3 ^
-            --enable-plugin=tk-inter ^
-            --windows-console-mode=disable ^
-            main-gui.py
+          nuitka \
+          --onefile \
+          --standalone \
+          --no-pyi-file \
+          --no-debug-immortal-assumptions \
+          --remove-output \
+          --include-module=verification \
+          --include-module=scfarm \
+          --include-module=room \
+          --include-module=profile_picture \
+          --include-module=msp \
+          --include-module=login_helper \
+          --include-module=idretriever \
+          --include-module=draftdesign \
+          --include-module=autograph \
+          --include-module=ascii \
+          --include-module=animation \
+          --include-module=curl_cffi.requests \
+          --include-module=pyamf \
+          --include-module=pyamf.amf0 \
+          --include-module=pyamf.amf3 \
+          --include-package=PIL \
+          --include-module=tkinter \
+          --include-module=tkinter.scrolledtext \
+          --include-module=tkinter.messagebox \
+          --enable-plugin=tk-inter \
+          main-gui.py
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
