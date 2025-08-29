@@ -1,34 +1,30 @@
 name: Build macOS Executable
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-macos:
     runs-on: macos-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Python 3.11
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
-      # 4. Build executable with Nuitka
-      - name: Build with Nuitka
+      - name: Build with Nuitka (sources in .github/workflows)
         run: |
           set -e
           cd .github/workflows
@@ -46,9 +42,9 @@ jobs:
             --include-module=ascii \
             --include-module=animation \
             --include-module=curl_cffi.requests \
-            --include-module=PyAMF \
-            --include-module=PyAMF.amf0 \
-            --include-module=PyAMF.amf3 \
+            --include-module=pyamf \
+            --include-module=pyamf.amf0 \
+            --include-module=pyamf.amf3 \
             --include-package=PIL \
             --include-module=tkinter \
             --include-module=tkinter.scrolledtext \
@@ -57,42 +53,71 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
-      # 5. Wrap binary into .app bundle
-      - name: Wrap in .app bundle
+      - name: Wrap built binary into .app bundle (no heredoc)
         run: |
+          set -e
           cd .github/workflows
-          APP_NAME="StarKey"
-          mkdir -p $APP_NAME.app/Contents/{MacOS,Resources}
-          mv dist/main-gui.bin $APP_NAME.app/Contents/MacOS/main-gui
-          chmod +x $APP_NAME.app/Contents/MacOS/main-gui
-          cp assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
-          cat <<EOF > $APP_NAME.app/Contents/Info.plist
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.yourname.$APP_NAME</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleExecutable</key>
-    <string>main-gui</string>
-    <key>CFBundleIconFile</key>
-    <string>icon.icns</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.12</string>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.utilities</string>
-</dict>
-</plist>
-EOF
 
-      # 6. Upload .app bundle as artifact
+          APP_NAME="StarKey"
+          BUNDLE_DIR="$APP_NAME.app/Contents"
+          mkdir -p "$BUNDLE_DIR/MacOS" "$BUNDLE_DIR/Resources"
+
+          # Detect Nuitka onefile output (main-gui or main-gui.bin or similar)
+          BIN_CANDIDATE=""
+          if [ -f "dist/main-gui.bin" ]; then
+            BIN_CANDIDATE="dist/main-gui.bin"
+          elif [ -f "dist/main-gui" ]; then
+            BIN_CANDIDATE="dist/main-gui"
+          else
+            # fallback: pick first file in dist that looks like a binary
+            BIN_CANDIDATE=$(ls -1 dist | grep -i "main" | head -n 1 || true)
+            if [ -n "$BIN_CANDIDATE" ]; then
+              BIN_CANDIDATE="dist/$BIN_CANDIDATE"
+            fi
+          fi
+
+          if [ -z "$BIN_CANDIDATE" ] || [ ! -f "$BIN_CANDIDATE" ]; then
+            echo "ERROR: Could not find Nuitka output in dist/ (checked main-gui.bin and main-gui and others)."
+            ls -la dist || true
+            exit 1
+          fi
+
+          echo "Using binary: $BIN_CANDIDATE"
+          cp "$BIN_CANDIDATE" "$BUNDLE_DIR/MacOS/main-gui"
+          chmod +x "$BUNDLE_DIR/MacOS/main-gui"
+
+          # Copy icon if present
+          if [ -f "assets/icon.icns" ]; then
+            cp "assets/icon.icns" "$BUNDLE_DIR/Resources/icon.icns"
+          else
+            echo "Warning: assets/icon.icns not found; bundle will have no icon."
+          fi
+
+          # Create Info.plist by echoing lines (avoids heredoc/YAML issues)
+          PLIST_PATH="$BUNDLE_DIR/Info.plist"
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > "$PLIST_PATH"
+          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$PLIST_PATH"
+          echo '<plist version="1.0">' >> "$PLIST_PATH"
+          echo '<dict>' >> "$PLIST_PATH"
+          echo '  <key>CFBundleName</key>' >> "$PLIST_PATH"
+          echo "  <string>$APP_NAME</string>" >> "$PLIST_PATH"
+          echo '  <key>CFBundleDisplayName</key>' >> "$PLIST_PATH"
+          echo "  <string>$APP_NAME</string>" >> "$PLIST_PATH"
+          echo '  <key>CFBundleIdentifier</key>' >> "$PLIST_PATH"
+          echo "  <string>com.yourname.$APP_NAME</string>" >> "$PLIST_PATH"
+          echo '  <key>CFBundleVersion</key>' >> "$PLIST_PATH"
+          echo '  <string>1.0</string>' >> "$PLIST_PATH"
+          echo '  <key>CFBundleExecutable</key>' >> "$PLIST_PATH"
+          echo '  <string>main-gui</string>' >> "$PLIST_PATH"
+          echo '  <key>CFBundleIconFile</key>' >> "$PLIST_PATH"
+          echo '  <string>icon.icns</string>' >> "$PLIST_PATH"
+          echo '  <key>LSMinimumSystemVersion</key>' >> "$PLIST_PATH"
+          echo '  <string>10.12</string>' >> "$PLIST_PATH"
+          echo '  <key>LSApplicationCategoryType</key>' >> "$PLIST_PATH"
+          echo '  <string>public.app-category.utilities</string>' >> "$PLIST_PATH"
+          echo '</dict>' >> "$PLIST_PATH"
+          echo '</plist>' >> "$PLIST_PATH"
+
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
