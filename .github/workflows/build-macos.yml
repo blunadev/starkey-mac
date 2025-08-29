@@ -11,19 +11,23 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      # 2. Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
+      # 4. Build the executable
       - name: Build with Nuitka
         run: |
           mkdir -p dist
@@ -48,6 +52,7 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
+      # 5. Wrap in .app bundle
       - name: Wrap in .app bundle
         run: |
           APP_NAME="MyApp"
@@ -82,6 +87,7 @@ jobs:
 </plist>
 EOF
 
+      # 6. Upload .app bundle as artifact
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
