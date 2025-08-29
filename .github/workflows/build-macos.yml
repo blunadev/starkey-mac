@@ -67,11 +67,11 @@ jobs:
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>$APP_NAME</string>
+    <string>$$APP_NAME</string>
     <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
+    <string>$$APP_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourname.$APP_NAME</string>
+    <string>com.yourname.$$APP_NAME</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleExecutable</key>
