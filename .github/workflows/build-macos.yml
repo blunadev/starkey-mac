@@ -1,30 +1,34 @@
 name: Build macOS Executable
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build-macos:
     runs-on: macos-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      # 2. Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka==1.8.6 pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
-      - name: Build with Nuitka (run from .github/workflows)
+      # 4. Build executable with Nuitka
+      - name: Build with Nuitka
         run: |
           set -e
           cd .github/workflows
@@ -42,9 +46,9 @@ jobs:
             --include-module=ascii \
             --include-module=animation \
             --include-module=curl_cffi.requests \
-            --include-module=Py3AMF \
-            --include-module=Py3AMF.amf0 \
-            --include-module=Py3AMF.amf3 \
+            --include-module=PyAMF \
+            --include-module=PyAMF.amf0 \
+            --include-module=PyAMF.amf3 \
             --include-package=PIL \
             --include-module=tkinter \
             --include-module=tkinter.scrolledtext \
@@ -53,64 +57,44 @@ jobs:
             --output-dir=dist \
             main-gui.py
 
-      - name: Wrap into .app bundle
+      # 5. Wrap binary into .app bundle
+      - name: Wrap in .app bundle
         run: |
-          set -e
           cd .github/workflows
-          APP_NAME="StarKeyApp"
-          mkdir -p "$APP_NAME.app/Contents/MacOS" "$APP_NAME.app/Contents/Resources"
+          APP_NAME="StarKey"
+          mkdir -p $APP_NAME.app/Contents/{MacOS,Resources}
+          mv dist/main-gui.bin $APP_NAME.app/Contents/MacOS/main-gui
+          chmod +x $APP_NAME.app/Contents/MacOS/main-gui
+          cp assets/icon.icns $APP_NAME.app/Contents/Resources/icon.icns
+          cat <<EOF > $APP_NAME.app/Contents/Info.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>$APP_NAME</string>
+    <key>CFBundleDisplayName</key>
+    <string>$APP_NAME</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourname.$APP_NAME</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>main-gui</string>
+    <key>CFBundleIconFile</key>
+    <string>icon.icns</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.12</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+</dict>
+</plist>
+EOF
 
-          # Find Nuitka output binary
-          BIN=""
-          if [ -f "dist/main-gui.bin" ]; then
-            BIN="dist/main-gui.bin"
-          elif [ -f "dist/main-gui" ]; then
-            BIN="dist/main-gui"
-          elif ls dist/*main* 1> /dev/null 2>&1; then
-            BIN=$(ls dist/*main* | head -n 1)
-          else
-            echo "Error: Nuitka output not found in dist/"
-            ls -la dist || true
-            exit 1
-          fi
-          echo "Using binary: $BIN"
-
-          cp "$BIN" "$APP_NAME.app/Contents/MacOS/main-gui"
-          chmod +x "$APP_NAME.app/Contents/MacOS/main-gui"
-
-          # Copy icon
-          if [ -f "assets/icon.icns" ]; then
-            cp "assets/icon.icns" "$APP_NAME.app/Contents/Resources/icon.icns"
-          else
-            echo "Warning: assets/icon.icns not found; continuing without icon."
-          fi
-
-          # Create Info.plist (fixed version 1.0)
-          echo '<?xml version="1.0" encoding="UTF-8"?>' > "$APP_NAME.app/Contents/Info.plist"
-          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '<plist version="1.0">' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '<dict>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleName</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo "  <string>$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleDisplayName</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo "  <string>$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleIdentifier</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo "  <string>com.yourname.$APP_NAME</string>" >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleVersion</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <string>1.0</string>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleExecutable</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <string>main-gui</string>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>CFBundleIconFile</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <string>icon.icns</string>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>LSMinimumSystemVersion</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <string>10.12</string>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <key>LSApplicationCategoryType</key>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '  <string>public.app-category.utilities</string>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '</dict>' >> "$APP_NAME.app/Contents/Info.plist"
-          echo '</plist>' >> "$APP_NAME.app/Contents/Info.plist"
-
+      # 6. Upload .app bundle as artifact
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StarKeyApp-macos
-          path: .github/workflows/StarKeyApp.app
+          name: StarKey-macos
+          path: .github/workflows/StarKey.app
