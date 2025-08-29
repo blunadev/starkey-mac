@@ -1,61 +1,63 @@
-name: Build Executable
+name: Build macOS Executable
 
 on:
-  workflow_dispatch: # allows manual trigger
-  push:              # or trigger on pushes
+  workflow_dispatch:       # allows manual trigger
+  push:
     branches:
       - main
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-macos:
+    runs-on: macos-latest
 
     steps:
+      # Step 1: Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Set up Python 3.12
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # Step 3: Install required packages
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install nuitka pillow requests py3amf
+          python -m pip install --upgrade pip
+          pip install nuitka==1.8.6           # pin to latest stable
+          pip install pillow requests Py3AMF==0.8.10 curl_cffi==0.10.0
 
+      # Step 4: Build the executable with Nuitka
       - name: Build with Nuitka
         run: |
-          nuitka \
-          --onefile \
-          --standalone \
-          --no-pyi-file \
-          --no-debug-immortal-assumptions \
-          --remove-output \
-          --include-module=verification \
-          --include-module=scfarm \
-          --include-module=room \
-          --include-module=profile_picture \
-          --include-module=msp \
-          --include-module=login_helper \
-          --include-module=idretriever \
-          --include-module=draftdesign \
-          --include-module=autograph \
-          --include-module=ascii \
-          --include-module=animation \
-          --include-module=curl_cffi.requests \
-          --include-module=pyamf \
-          --include-module=pyamf.amf0 \
-          --include-module=pyamf.amf3 \
-          --include-package=PIL \
-          --include-module=tkinter \
-          --include-module=tkinter.scrolledtext \
-          --include-module=tkinter.messagebox \
-          --enable-plugin=tk-inter \
-          main-gui.py
+          nuitka --onefile --standalone --no-pyi-file --no-debug-immortal-assumptions --remove-output \
+            --include-module=verification \
+            --include-module=scfarm \
+            --include-module=room \
+            --include-module=profile_picture \
+            --include-module=msp \
+            --include-module=login_helper \
+            --include-module=idretriever \
+            --include-module=draftdesign \
+            --include-module=autograph \
+            --include-module=ascii \
+            --include-module=animation \
+            --include-module=curl_cffi.requests \
+            --include-module=Py3AMF \
+            --include-module=Py3AMF.amf0 \
+            --include-module=Py3AMF.amf3 \
+            --include-package=PIL \
+            --include-module=tkinter \
+            --include-module=tkinter.scrolledtext \
+            --include-module=tkinter.messagebox \
+            --enable-plugin=tk-inter \
+            --windows-console-mode=disable \
+            main-gui.py
 
+      # Step 5: Upload the executable as an artifact
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
-          name: main-gui-exe
-          path: main-gui.exe
+          name: main-gui-macos
+          path: main-gui.bin   # Nuitka builds as .bin on macOS
